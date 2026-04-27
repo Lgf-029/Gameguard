@@ -5,7 +5,7 @@ from app.config import ES_HOST, ES_PORT
 class ESClient:
     def __init__(self):
         self.client = Elasticsearch(
-            hosts=[{"host": ES_HOST, "port": ES_PORT}]
+            hosts=[f"http://{ES_HOST}:{ES_PORT}"]
         )
 
     def index_log(self, index: str, doc: dict) -> str:
