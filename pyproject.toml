@@ -1,7 +1,7 @@
 [project]
 name = "gameguard"
 version = "0.1.0"
-description = "Add your description here"
+description = "GameGuard 风控系统"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.136.0",

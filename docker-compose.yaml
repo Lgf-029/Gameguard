@@ -118,6 +118,11 @@ services:
         condition: service_healthy
     networks:
       - db-net
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9091/healthz" ]
+      interval: 15s
+      timeout: 10s
+      retries: 8
 
   neo4j:
     image: neo4j:5-community
