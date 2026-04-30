@@ -1,9 +1,10 @@
-from pymilvus import MilvusClient, DataType
+from pymilvus import MilvusClient as PyMilvusClient
+from pymilvus import DataType
 from app.config import MILVUS_HOST, MILVUS_PORT, MILVUS_USER, MILVUS_PASSWORD
 
-class MilvusClientWrapper:
+class MilvusClient:
     def __init__(self):
-        self.client = MilvusClient(
+        self.client = PyMilvusClient(
             uri=f"http://{MILVUS_HOST}:{MILVUS_PORT}",
             user=MILVUS_USER,
             password=MILVUS_PASSWORD,

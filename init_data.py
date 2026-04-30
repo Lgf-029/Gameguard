@@ -4,7 +4,7 @@ from faker import Faker
 from app.databases.mysql_client import MySQLClient
 from app.databases.redis_client import RedisClient
 from app.databases.elasticsearch_client import ESClient
-from app.databases.milvus_client import MilvusClientWrapper
+from app.databases.milvus_client import MilvusClient
 from app.databases.neo4j_client import Neo4jClient
 from app.services.embedding_client import get_embedding
 
@@ -15,7 +15,7 @@ random.seed(42)
 mysql = MySQLClient()
 redis = RedisClient()
 es = ESClient()
-milvus = MilvusClientWrapper()
+milvus = MilvusClient()
 neo4j = Neo4jClient()
 
 # ── 建表（每次重建保证结构一致）──
