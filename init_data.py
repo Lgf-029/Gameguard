@@ -240,7 +240,7 @@ print(f"  交易记录: {len(transactions)} 条 (290 normal + 10 fraud)")
 print("写入风控规则...")
 seed_rules = [
     ("新注册大额充值",     "register_days",     "lte", 7.0,   50.0),
-    ("单笔超过648",        "amount",            "gte", 648.0, 40.0),
+    ("单笔超过648",        "amount",            "gte", 649.0, 40.0),
     ("同设备多账号",       "device_count",      "gte", 5.0,   60.0),
     ("1小时内高频充值",    "recharge_count_1h", "gte", 5.0,   30.0),
     ("设备为模拟器",       "is_emulator",       "eq",  1.0,   35.0),

@@ -16,17 +16,20 @@ def get_behavior_text(player_id: str, device_id: str, amount: float, ip: str, pa
 # 查Milvus返回Top_k匹配
 def search_similar_anomalies(text: str, top_k: int = 5) -> list[dict]:
     vec = get_embedding(text)
-    results = _get_milvus().search_similar("transaction_behaviors", vec, top_k)
+    milvus = _get_milvus()
+    collection = "transaction_behaviors"
+    if milvus.client.has_collection(collection):
+        milvus.client.load_collection(collection)
+    results = milvus.search_similar(collection, vec, top_k)
     matches = []
     for item in results:
-        distance = item.get("distance",0.0)
+        distance = item.get("distance", 0.0)
         similarity = 1.0 - distance
         matches.append({
-            "transaction_id": item.get("id",""),
-            "similarity":round(similarity,4),
+            "transaction_id": item.get("id", ""),
+            "similarity": round(similarity, 4),
         })
     return matches
-
 # 向量检测入口
 def run_vector_detect(player_id: str, device_id: str, amount: float, ip: str, payment_method: str) -> dict:
     text = get_behavior_text(player_id,device_id,amount,ip,payment_method)

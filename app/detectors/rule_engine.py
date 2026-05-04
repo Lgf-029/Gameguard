@@ -60,6 +60,11 @@ def get_player_snapshot(player_id: str) -> Optional[dict]:
     if not rows:
         return None
     player = dict(rows[0])
+    player["total_recharge"] = float(player["total_recharge"])
+    player["total_orders"] = int(player["total_orders"])
+    player["device_count"] = int(player["device_count"])
+    player["ip_count"] = int(player["ip_count"])
+    player["register_days"] = int(player["register_days"])
     _get_redis().set_cache(cache_key, json.dumps(player), PLAYER_CACHE_TTL)
     return player
 
@@ -76,6 +81,9 @@ def get_device_info(device_id: str) -> Optional[dict]:
     if not rows:
         return None
     device = dict(rows[0])
+    device["is_emulator"] = int(device["is_emulator"])
+    device["is_rooted"] = int(device["is_rooted"])
+    device["linked_account_count"] = int(device["linked_account_count"])
     _get_redis().set_cache(cache_key,json.dumps(device),DEVICE_CACHE_TTL)
     return device
 
