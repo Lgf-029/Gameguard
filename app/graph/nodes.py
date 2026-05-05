@@ -3,7 +3,7 @@ from app.detectors.rule_engine import run_rule_engine
 from app.detectors.vector_detect import run_vector_detect
 from app.detectors.graph_detect import run_graph_detect
 from app.services.llm_client import get_llm
-
+from langgraph.types import interrupt
 
 def rule_detect_node(state: dict) -> dict:
     result = run_rule_engine(state["uid"], state["device_id"], state["amount"])
@@ -103,3 +103,49 @@ def report_node(state: GameGuardState) -> dict:
 
     report = llm.invoke(prompt).content
     return {"report": report}
+
+
+def human_review_node(state: GameGuardState) -> dict:
+    """中风险交易推人工审核，先生成报告再提交审核"""
+    trace = state.get("trace", {})
+    llm = get_llm(temperature=0.1)
+
+    # 先生成报告
+    report_prompt = f"""根据以下风控检测结果，用中文生成一份详细的风险分析报告：
+
+规则引擎检测：{trace.get("rule_engine", {})}
+向量相似度检测：{trace.get("vector_detect", {})}
+知识图谱检测：{trace.get("graph_detect", {})}
+最终风险分：{state.get("risk_score", 0)}
+风险等级：{state.get("risk_level", "unknown")}
+处置建议：{state.get("action", "unknown")}
+
+请用专业、简洁的语言，说明每路检测发现了什么风险、最终的综合风险判断是什么。"""
+
+    analysis_report = llm.invoke(report_prompt).content
+
+    # 把报告和交易信息一起提交给审核员
+    review_payload = {
+        "transaction_id": state.get("transaction_id", ""),
+        "uid": state.get("uid", ""),
+        "amount": state.get("amount", 0),
+        "risk_score": state.get("risk_score", 0),
+        "trace": state.get("trace", {}),
+        "analysis_report": analysis_report,
+        "message": "请审核员根据以上风险分析报告做出决定：approve（通过）/ reject（拒绝）",
+    }
+
+    human_input = interrupt(review_payload)
+    decision = human_input.get("decision", "reject")
+    feedback = human_input.get("feedback", "")
+
+    if decision == "approve":
+        return {
+            "action": "pass",
+            "report": f"人工审核通过。审核员反馈：{feedback}\n\n系统分析报告：{analysis_report}",
+        }
+    else:
+        return {
+            "action": "block",
+            "report": f"人工审核拒绝。审核员反馈：{feedback}\n\n系统分析报告：{analysis_report}",
+        }
