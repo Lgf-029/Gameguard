@@ -2,6 +2,8 @@ from fastapi import FastAPI
 from app.models.request import DetectRequest
 from app.models.response import DetectResponse, TraceInfo, RuleResult, VectorResult, GraphResult
 from app.graph.builder import build_graph
+from app.databases.elasticsearch_client import ESClient
+import datetime
 
 app = FastAPI(title="GameGuard")
 graph = build_graph()
@@ -32,6 +34,23 @@ def detect(req: DetectRequest) -> DetectResponse:
     rule = trace.get("rule_engine", {})
     vector = trace.get("vector_detect", {})
     graph_data = trace.get("graph_detect", {})
+
+    es = ESClient()
+    es.index_log("detection_logs", {
+        "transaction_id": req.transaction_id,
+        "uid": req.uid,
+        "amount": float(req.amount),
+        "device_id": req.device_id,
+        "ip": req.ip,
+        "payment_method": req.payment_method,
+        "timestamp": datetime.datetime.now().isoformat(),
+        "risk_score": result["risk_score"],
+        "risk_level": result["risk_level"],
+        "action": result["action"],
+        "trace": result.get("trace", {}),
+        "report": result.get("report", ""),
+    })
+    es.close()
 
     return DetectResponse(
         transaction_id=req.transaction_id,
