@@ -30,4 +30,5 @@ class DetectResponse(BaseModel):
     risk_level: str  # "high" / "medium" / "low"
     action: str  # "block" / "review" / "pass"
     trace: TraceInfo
+    report: str = ""
     checkpoint_id: Optional[str] = None

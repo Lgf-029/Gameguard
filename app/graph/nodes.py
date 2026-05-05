@@ -2,15 +2,15 @@ from app.graph.state import GameGuardState
 from app.detectors.rule_engine import run_rule_engine
 from app.detectors.vector_detect import run_vector_detect
 from app.detectors.graph_detect import run_graph_detect
+from app.services.llm_client import get_llm
 
 
-def rule_detect_node(state: GameGuardState) -> dict:
+def rule_detect_node(state: dict) -> dict:
     result = run_rule_engine(state["uid"], state["device_id"], state["amount"])
     return {"rule_result": result}
 
 
 def vector_detect_node(state: GameGuardState) -> dict:
-    return {"vector_result": {"has_match": False, "similarity_score": 0.0, "top_matches": []}}
     result = run_vector_detect(
         state["uid"],
         state["device_id"],
@@ -26,36 +26,55 @@ def graph_detect_node(state: GameGuardState) -> dict:
     return {"graph_result": result}
 
 
+def rrf_rank(scores: list[tuple[str, float]], k: int = 60) -> dict:
+    """按原始分数降序排名，返回每路的RRF分数"""
+    ranked = sorted(scores, key=lambda x: x[1], reverse=True)
+    result = {}
+    for rank, (source, score) in enumerate(ranked, start=1):
+        result[source] = 1.0 / (k + rank)
+    return result
+
+
 def rrf_fusion_node(state: GameGuardState) -> dict:
-    scores = []
-
     rule = state.get("rule_result") or {}
-    if rule.get("player_exists"):
-        scores.append(("rule", rule.get("total_score", 0)))
-
     vector = state.get("vector_result") or {}
-    if vector.get("has_match"):
-        sim = vector.get("similarity_score", 0)
-        scores.append(("vector", sim * 50))
-
     graph = state.get("graph_result") or {}
-    if graph.get("has_anomaly"):
-        scores.append(("graph", graph.get("graph_score", 0)))
 
-    if not scores:
+    raw_scores = []
+
+    if rule.get("player_exists"):
+        raw_scores.append(("rule", rule.get("total_score", 0)))
+
+    sim = vector.get("similarity_score", 0)
+    if sim >= 0.2:
+        vec_score = max(0.0, sim * 100)
+        raw_scores.append(("vector", vec_score))
+
+    if graph.get("has_anomaly"):
+        raw_scores.append(("graph", graph.get("graph_score", 0)))
+
+    if not raw_scores:
         return {"risk_score": 0.0, "risk_level": "low", "action": "pass"}
 
-    total = sum(s for _, s in scores) / len(scores)
+    rrf_scores = rrf_rank(raw_scores, k=60)
 
-    if total >= 80:
+    # 赋予不同置信权重
+    weights = {"rule": 0.4, "vector": 0.35, "graph": 0.25}
+    total_rrf = sum(rrf_scores.get(src, 0) * weights.get(src, 0.3) for src, _ in raw_scores)
+
+    # 归一化
+    max_possible = sum(weights.values()) * (1.0 / (60 + 1))
+    normalized = (total_rrf / max_possible) * 100 if max_possible > 0 else 0.0
+
+    if normalized >= 80:
         level, action = "high", "block"
-    elif total >= 40:
+    elif normalized >= 40:
         level, action = "medium", "review"
     else:
         level, action = "low", "pass"
 
     return {
-        "risk_score": round(total, 2),
+        "risk_score": round(normalized, 2),
         "risk_level": level,
         "action": action,
         "trace": {
@@ -63,4 +82,24 @@ def rrf_fusion_node(state: GameGuardState) -> dict:
             "vector_detect": vector,
             "graph_detect": graph,
         },
+        "fusion_method": "rrf_weighted"
     }
+
+def report_node(state: GameGuardState) -> dict:
+    """根据检测结果生成自然语言风控报告"""
+    trace = state.get("trace", {})
+    llm = get_llm(temperature=0.1)
+
+    prompt = f"""根据以下风控检测结果，用中文生成一份简洁的风控报告：
+
+规则引擎检测：{trace.get("rule_engine", {})}
+向量相似度检测：{trace.get("vector_detect", {})}
+知识图谱检测：{trace.get("graph_detect", {})}
+最终风险分：{state.get("risk_score", 0)}
+风险等级：{state.get("risk_level", "unknown")}
+处置建议：{state.get("action", "unknown")}
+
+请用专业、简洁的语言，说明每路检测发现了什么、最终结论是什么。"""
+
+    report = llm.invoke(prompt).content
+    return {"report": report}

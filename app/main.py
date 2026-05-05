@@ -27,7 +27,7 @@ def detect(req: DetectRequest) -> DetectResponse:
     }
 
     result = graph.invoke(state)
-
+    report_text = result.get("report", "") or state.get("report", "")
     trace = result.get("trace", {})
     rule = trace.get("rule_engine", {})
     vector = trace.get("vector_detect", {})
@@ -56,5 +56,6 @@ def detect(req: DetectRequest) -> DetectResponse:
                 "sources": ["rule_engine", "vector_detect", "graph_detect"],
             },
         ),
+        report=report_text,
         checkpoint_id="",
     )

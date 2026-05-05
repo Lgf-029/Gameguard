@@ -16,3 +16,4 @@ class GameGuardState(TypedDict):
     action: str
     trace: dict
     error: str
+    report: str

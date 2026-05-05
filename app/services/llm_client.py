@@ -10,5 +10,5 @@ def get_llm(temperature=0.2, model="deepseek-v4-pro"):
         temperature=temperature,
         openai_api_key=os.getenv("DEEPSEEK_API_KEY"),
         openai_api_base=os.getenv("DEEPSEEK_BASE_URL"),
-        max_tokens=2048
+        max_tokens=512
     )
