@@ -35,9 +35,6 @@ def fanout_to_detectors(state: GameGuardState) -> list[Send]:
 
 def route_after_fusion(state: GameGuardState) -> str:
     """根据风险等级路由：高风险直接报告，中风险人工审核，低风险直接报告"""
-    action = state.get("action", "pass")
-    if action == "review":
-        return "human_review"
     return "report"
 
 

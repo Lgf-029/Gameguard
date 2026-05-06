@@ -25,7 +25,6 @@ def submit_review(decision: ReviewDecision) -> dict:
         "feedback": decision.feedback,
     }
 
-    # 从断点恢复执行，传入审核员决定
     for event in graph.stream(Command(resume=human_input), config):
         pass
 
@@ -59,17 +58,14 @@ def detect(req: DetectRequest):
 
     config = {"configurable": {"thread_id": req.transaction_id}}
 
-    # 执行工作流，预期在 human_review_node 的 interrupt 处挂起
     try:
         graph.invoke(state, config)
     except:
-        pass  # 中断时 invoke 会报错，忽略它
+        pass
 
-    # 读取挂起时的最新状态快照
     result = graph.get_state(config).values
     report_text = result.get("report", "")
 
-    # 如果是审核挂起状态，手动填充提示信息
     if result.get("action") == "review" and not report_text:
         report_text = "交易已提交人工审核，请等待审核员处理。"
 
@@ -106,7 +102,7 @@ def detect(req: DetectRequest):
                 score=rule.get("total_score", 0.0),
             ),
             vector_detect=VectorResult(
-                similar_transaction=vector.get("top_matches", [{}])[0].get("transaction_id", "") if vector.get("top_matches") else "",
+                similar_behavior=vector.get("top_matches", [{}])[0].get("transaction_id", "") if vector.get("top_matches") else "",
                 similarity=vector.get("similarity_score", 0.0),
             ),
             graph_detect=GraphResult(

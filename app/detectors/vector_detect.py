@@ -30,6 +30,7 @@ def search_similar_anomalies(text: str, top_k: int = 5) -> list[dict]:
             "similarity": round(similarity, 4),
         })
     return matches
+
 # 向量检测入口
 def run_vector_detect(player_id: str, device_id: str, amount: float, ip: str, payment_method: str) -> dict:
     text = get_behavior_text(player_id,device_id,amount,ip,payment_method)

@@ -1,12 +1,13 @@
-待完成的清单如下：
+uv run uvicorn app.main:app --host localhost --port 8000 --reload
 
-Agent自主决策壳（自然语言驱动）
+正常数据：
+{
+  "transaction_id": "txn_test_normal_001",
+  "uid": "player_001",
+  "amount": 30.00,
+  "device_id": "dev_005",
+  "ip": "192.168.1.10",
+  "payment_method": "wechat"
+}
 
-人工审核报告前置（Report-before-Review）
-
-RRF实验数据整理
-
-Commit & Push
-
-
-数据生成文件还未重构
+异常数据：
